@@ -33,6 +33,7 @@ import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.PackageParser;
 import android.content.pm.PackageUserState;
 import android.content.pm.VerificationParams;
+import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -44,6 +45,7 @@ import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.AppSecurityPermissions;
 import android.widget.Button;
+import android.widget.RelativeLayout;
 import android.widget.TabHost;
 import android.widget.TextView;
 
@@ -174,11 +176,18 @@ public class PackageInstallerActivity extends Activity implements OnCancelListen
         if (msg != 0) {
             ((TextView)findViewById(R.id.install_confirm_question)).setText(msg);
         }
+        RelativeLayout mainPanel = (RelativeLayout)findViewById(R.id.main);
         mInstallConfirm.setVisibility(View.VISIBLE);
         mOk = (Button)findViewById(R.id.ok_button);
         mCancel = (Button)findViewById(R.id.cancel_button);
         mOk.setOnClickListener(this);
         mCancel.setOnClickListener(this);
+        
+        if (mOk.getTextColors().getDefaultColor() < (getResources().getColor(
+                R.color.app_background) / 2)) {
+            mainPanel.setBackgroundResource(R.color.app_background_light);
+        }
+        
         if (mScrollView == null) {
             // There is nothing to scroll view, so the ok button is immediately
             // set to install.
