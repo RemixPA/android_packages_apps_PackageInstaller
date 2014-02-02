@@ -171,6 +171,13 @@ public class UninstallAppProgress extends Activity implements OnClickListener {
         PackageDeleteObserver observer = new PackageDeleteObserver();
         getPackageManager().deletePackage(mAppInfo.packageName, observer,
                 mAllUsers ? PackageManager.DELETE_ALL_USERS : 0);
+        
+        if (isQuickMode) {
+            onBackPressed();
+            Toast.makeText(this, getString(R.string.uninstalling),
+                    Toast.LENGTH_SHORT)
+                    .show();
+        }
     }
 
     public void onClick(View v) {

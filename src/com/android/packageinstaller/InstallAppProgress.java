@@ -19,6 +19,9 @@ package com.android.packageinstaller;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
@@ -31,6 +34,8 @@ import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.ResolveInfo;
 import android.content.pm.VerificationParams;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.LevelListDrawable;
 import android.net.Uri;
 import android.os.Bundle;
@@ -62,6 +67,7 @@ public class InstallAppProgress extends Activity implements View.OnClickListener
             "com.android.packageinstaller.extras.manifest_digest";
     static final String EXTRA_INSTALL_FLOW_ANALYTICS =
             "com.android.packageinstaller.extras.install_flow_analytics";
+    private static final int NOTIFICATION_START_INSTALL = 0;
     private ApplicationInfo mAppInfo;
     private Uri mPackageURI;
     private InstallFlowAnalytics mInstallFlowAnalytics;
@@ -94,7 +100,7 @@ public class InstallAppProgress extends Activity implements View.OnClickListener
                     }
                     if (isQuickMode) {
                         if (msg.arg1 == PackageManager.INSTALL_SUCCEEDED) {
-                            Toast.makeText(mContext, getString(R.string.quick_mode_installed),
+                            Toast.makeText(mContext, getString(R.string.quick_mode_installed, mLabel),
                                     Toast.LENGTH_SHORT).show();
                         } else if (msg.arg1 == PackageManager.INSTALL_FAILED_INSUFFICIENT_STORAGE) {
                             Toast.makeText(mContext, getString(R.string.out_of_space_dlg_text, mLabel),
@@ -103,6 +109,9 @@ public class InstallAppProgress extends Activity implements View.OnClickListener
                             Toast.makeText(mContext, getString(R.string.install_failed),
                                     Toast.LENGTH_SHORT).show();
                         }
+                        final NotificationManager nm = (NotificationManager) mContext
+                                .getSystemService(Context.NOTIFICATION_SERVICE);
+                        nm.cancel(NOTIFICATION_START_INSTALL);
                     } else {
                         // Update the status text
                         mProgressBar.setVisibility(View.INVISIBLE);
@@ -312,8 +321,24 @@ public class InstallAppProgress extends Activity implements View.OnClickListener
         }
         if (isQuickMode) {
             onBackPressed();
-            Toast.makeText(this, getString(R.string.quick_mode_installing, mLabel), Toast.LENGTH_SHORT)
+            Toast.makeText(this, getString(R.string.quick_mode_installing, mLabel),
+                    Toast.LENGTH_SHORT)
                     .show();
+            Intent intent = new Intent();
+            PendingIntent contentIntent = PendingIntent.getActivity(mContext, 0,
+                    intent, PendingIntent.FLAG_UPDATE_CURRENT);
+            Notification installNotify = new Notification.Builder(mContext)
+                    .setSmallIcon(R.drawable.ic_pending)
+                    .setContentIntent(contentIntent)
+                    .setContentTitle(mContext.getString(R.string.installing))
+                    .setContentText(mContext.getString(R.string.quick_mode_installing, mLabel))
+                    .setAutoCancel(false)
+                    .setProgress(100, 100, true)
+                    .setTicker(mContext.getString(R.string.quick_mode_installing, mLabel)).build();
+            installNotify.flags = Notification.FLAG_ONGOING_EVENT | Notification.FLAG_NO_CLEAR;
+            final NotificationManager nm = (NotificationManager) mContext
+                    .getSystemService(Context.NOTIFICATION_SERVICE);
+            nm.notify(NOTIFICATION_START_INSTALL, installNotify);
         }
     }
 
