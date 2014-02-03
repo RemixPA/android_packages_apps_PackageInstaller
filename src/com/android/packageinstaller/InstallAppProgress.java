@@ -51,6 +51,7 @@ import android.widget.Toast;
 
 import java.io.File;
 import java.util.List;
+import java.util.Random;
 
 /**
  * This activity corresponds to a download progress screen that is displayed 
@@ -67,7 +68,6 @@ public class InstallAppProgress extends Activity implements View.OnClickListener
             "com.android.packageinstaller.extras.manifest_digest";
     static final String EXTRA_INSTALL_FLOW_ANALYTICS =
             "com.android.packageinstaller.extras.install_flow_analytics";
-    private static final int NOTIFICATION_START_INSTALL = 0;
     private ApplicationInfo mAppInfo;
     private Uri mPackageURI;
     private InstallFlowAnalytics mInstallFlowAnalytics;
@@ -83,6 +83,10 @@ public class InstallAppProgress extends Activity implements View.OnClickListener
     private CharSequence mLabel;
     private boolean isQuickMode;
     private Context mContext;
+    private NotificationManager mNotificationManager;
+    
+    private int mNotiCounter = 0;
+    private int mUnNoticed = 0;
 
     private Handler mHandler = new Handler() {
         public void handleMessage(Message msg) {
@@ -109,9 +113,7 @@ public class InstallAppProgress extends Activity implements View.OnClickListener
                             Toast.makeText(mContext, getString(R.string.install_failed),
                                     Toast.LENGTH_SHORT).show();
                         }
-                        final NotificationManager nm = (NotificationManager) mContext
-                                .getSystemService(Context.NOTIFICATION_SERVICE);
-                        nm.cancel(NOTIFICATION_START_INSTALL);
+                        mNotificationManager.cancel(mUnNoticed);
                     } else {
                         // Update the status text
                         mProgressBar.setVisibility(View.INVISIBLE);
@@ -200,6 +202,8 @@ public class InstallAppProgress extends Activity implements View.OnClickListener
         mInstallFlowAnalytics.setContext(this);
         mPackageURI = intent.getData();
         isQuickMode = intent.getBooleanExtra(PackageUtil.INTENT_ATTR_IS_QUICK_MODE_ENABLED, false);
+        mNotificationManager = (NotificationManager) mContext
+                                .getSystemService(Context.NOTIFICATION_SERVICE);
 
         final String scheme = mPackageURI.getScheme();
         if (scheme != null && !"file".equals(scheme) && !"package".equals(scheme)) {
@@ -326,7 +330,7 @@ public class InstallAppProgress extends Activity implements View.OnClickListener
                     .show();
             Intent intent = new Intent();
             PendingIntent contentIntent = PendingIntent.getActivity(mContext, 0,
-                    intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                    intent, PendingIntent.FLAG_ONE_SHOT);
             Notification installNotify = new Notification.Builder(mContext)
                     .setSmallIcon(R.drawable.ic_pending)
                     .setContentIntent(contentIntent)
@@ -336,9 +340,11 @@ public class InstallAppProgress extends Activity implements View.OnClickListener
                     .setProgress(100, 100, true)
                     .setTicker(mContext.getString(R.string.quick_mode_installing, mLabel)).build();
             installNotify.flags = Notification.FLAG_ONGOING_EVENT | Notification.FLAG_NO_CLEAR;
-            final NotificationManager nm = (NotificationManager) mContext
-                    .getSystemService(Context.NOTIFICATION_SERVICE);
-            nm.notify(NOTIFICATION_START_INSTALL, installNotify);
+            
+            Random r = new Random();
+            mNotiCounter = r.nextInt();
+            mNotificationManager.notify(mNotiCounter, installNotify);
+            mUnNoticed = mNotiCounter;
         }
     }
 
